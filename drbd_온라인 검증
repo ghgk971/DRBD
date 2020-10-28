@@ -10,6 +10,20 @@
   - # drbdadm adjust [resource_name]
   
 3. 확인
+  - 위 설정을 변경하여야만 온라인 중에 확인 가능하며, 동기화 되지 않은 블록을 감지하면 해당 블록을 표시하고 커널 메세지에 기록
   - # drbdadm verify [resource_name]
-  - 위 설정을 변경하여야만 온라인 중에 확인 가능
   
+4. 재 동기화 진행
+  - 동기화 되지 않은 블록 감지 시 확인 후 아래 명령으로 재 동기화 진행 가능
+  - # drbdadm disconnect [resource_name]
+  - # drbdadm connect [resource_name]
+  
+5. 자동 검증 구성
+  [개별]
+  - # vi /etc/cron.d/drbd-verify
+      42 0 * * 0    root    /sbin/drbdadm verify [resource_name]
+  [모든 리소스]
+  - # vi /etc/drbd.d/global_common.conf
+  common 섹선에 net {verify-alg <algorithm>;} 추가
+  - # vi /etc/cron.d/drbd-verify (모든 리소스)
+      42 0 * * 0    root    /sbin/drbdadm verify all
