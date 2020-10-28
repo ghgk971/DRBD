@@ -1,0 +1,26 @@
+1. 리소스 활성화
+  - 일반적으로 구성된 모든 DRBD 리소스는 자동으로 활성화 되며, 수동으로 활성화 해야 하는 경우 아래 명령 실행
+  - # drdadm up [resource_name]
+  
+2. 리소스 비활성화
+  - # rbdadm down [resource_name]
+  
+3. 리소스 재구성
+  - # vi /etc/drbd.conf 
+  - # scp [node]:/etc/drbd.conf
+  - # drbd adjust [resource_name]
+  
+4. 리소스 승격 및 강등
+  - # drbdadm primary [resource_name]
+  - # drbdadm secondary [resource_name]
+  
+5. 장애 수동 조치
+  - pacemaker를 사용하지 않는 경우 수동으로 아래 조치 필요
+  - # umount /dev/drbd/by-res/[resource_name]/[vol_nr]
+  - # drbdadm secondary [resource_name]
+
+  - # drbdadm primary [resource_name]
+  - # mount /dev/drbd/by-res/[resource_name]/[vol_nr] [mount_point]
+  - auto-promote 기능을 사용하는 경우 역할(primary/secondary)를 수동으로 변경할 필요 없으며, 서비스 정지 및 마운트 해제만 필요
+  
+  
