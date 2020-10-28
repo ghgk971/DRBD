@@ -1,0 +1,15 @@
+1. 온라인 검증 활성화 (설정파일 변경)
+  - # vi /etc/drbd.d/[resource_name]
+      resource <resource>
+      net {
+        verify-alg <algorithm>;
+      }
+  - algorithm 은 sha1, md5, crc32c 중 선택 가능
+  
+2. 동기화
+  - # drbdadm adjust [resource_name]
+  
+3. 확인
+  - # drbdadm verify [resource_name]
+  - 위 설정을 변경하여야만 온라인 중에 확인 가능
+  
