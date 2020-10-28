@@ -1,0 +1,53 @@
+1. disk 추가 (기존 resource 파일에 디스크 추가) (양쪽 모두)
+  - 기존 resource에 추가 후 adjust 실행 시킬 경우에 resource 다운이 발생함
+  - # vi /etc/drbd.d/drbd_res01.res 
+      volume 0 {
+        device /dev/drbd0;
+        disk /dev/mapper/vg_1-lv_1;
+        meta-disk internal;
+      }
+
+      volume 1 {
+        device /dev/drbd1;
+        disk /dev/mapper/vg_1-lv_2;
+        meta-disk internal;
+      }
+  - 위와 같이 기존 on [node] { } 내용에 있던 device, disk, meta-disk를 volume 0-..으로 변경하여 작성
+  - # drbdadm adjust drbd_res01 (해당 명령 실행 시 pacemaker에서 resource 정지 됨)
+  - # drbdadm create-md drbd_res01/1 (/1과 같이 volume id 지정)
+  - # drbdadm primary drbd_res01 (--force) (active node에서 실행)
+
+2. disk 추가 (새로운 resource 파일 생성하여 디스크 추가) (양쪽 모두)
+  - 새로운 resource 파일 생성하여 추가 시 기존 resource는 다운되지 않으나, 이전 리소스와 같은 포트를 사용할 수 없음
+  - # vi /etc/drbd.d/drbd_res02.res
+      resource "drbd_res02"
+      {
+        protocol C;
+        disk {on-io-error detach; resync-rate 100M;}
+        syncer {}
+
+        net{ping-timeout 30;
+        }
+
+        on rhcsdr1 {
+                address 100.100.100.21:7792;
+                node-id 1;
+                device /dev/drbd2;
+                disk /dev/mapper/vg_2-lv_data;
+                meta-disk internal;
+        }
+
+        on rhcsdr2 {
+                address 100.100.100.22:7792;
+                node-id 2;
+                device /dev/drbd2;
+                disk /dev/mapper/vg_2-lv_data;
+                meta-disk internal;
+        }
+      }
+  - # drbdadm adjust drbd_res02
+  - # drbdadm create-md drbd_res02
+  - # drbdadm status 확인 시 diskless로 출력될 경우 # drbdadm attach drbd_res02 실행
+  - 동기화 진행되지 않고 Inconsistent로 계속 대기중일 경우 # drbdadm disconnect drbd_res02 , drbdadm connect drbd_res02 실행
+  - # drbdadm primary drbd_res02 (active node에서 실행)
+  
