@@ -1,0 +1,24 @@
+1. 설정 파일 변경 (양쪽 모두)
+  - # vi /etc/drbd.d/[resource_name]
+      resource <resource>
+      net {
+        protocol C;
+        allow-two-primaries yes;
+        fencing resource-and-stonith;
+      }
+      handlers {
+        fence-peer "...";
+        unfence-peer "...";
+      }
+  
+2. 동기화 (양쪽 모두)
+  - # drbdadm adjust [resource_name]
+  
+3. primary 설정 (양쪽 모두)
+  - # drbdadm primary [resource_name]
+  
+4. 임시 설정 
+  - # drbdadm net-options --protocol = C --allow-two-primaries [resource_name]
+
+5. 임시 설정 제거
+  - # drbdadm net-options --protocol = C --allow-two-primaries=no [resource_name]
