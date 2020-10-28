@@ -1,0 +1,118 @@
+1. drbdmon을 통한 상태 확인
+  - drbd 리소스의 상태를 실시간으로 업데이트 함
+  - # drbdmon
+  
+2. 상태 확인 및 drbdtop을 통한 drbd와 상호 작용
+  - drbd 리소스를 모니터링 하고 상호 작용 할 수 있음
+  - https://linbit.github.io/drbdtop/ 에서 전체 개요 확인 가능
+  
+3. 상태 정보 확인
+  - drbd 모듈에 대한 기본 정보를 표시하는 가상 파일
+  - DRBD 8.4까지는 광범위하게 사용되었지만 DRBD 9에서 제공하는 정보의 양을 따라가지 못하므로 더이상 사용하지 않음
+  - # cat /proc/drbd
+  
+4. 리소스 상태 확인
+  - # drbdadm status [resource_name] or # drbdadm status
+  - 리소스의 상태만 확인 가능
+  
+5. 자세한 내용 출력
+  - # drdsetup status [resource_name] --verbose --statistics
+  
+6. 실시간 모니터링
+  - DRBD 8.9.3 이상에서 사용 가능
+  - # drbdsetup events2 --now [resource_name] (원샷)
+  - # drbdsetup events2 [resource_name] (실시간 모니터링)
+  - # drbdsetup events2 --statistics --now [resource_name] (성능 카운터 및 기타 값들을 추가 출력 --statistics)
+  - # drbdsetup events2 --statistics --now --timestamp [resource_name] (시간 정보 같이 출력 --timestamp)
+  
+7. 연결 상태 확인
+  - # drbdadm cstate [resoure_name] (리소스의 연결상태 확인)
+  - # drbdadm cstate [peer]:[resoure_name]
+
+8. 자원 역할 확인
+  - # drbdadm role [resource_name]
+
+9. 디스크 상태 확인
+  - # drbdadm dstate [resource_name]
+
+10. 성능 확인
+  - # drbdadm status-output (??? 안됨 확인 필요)
+  
+. 상태 목록
+  - 연결 상태 목록
+    StandAlone : 사용 가능한 네트워크 구성이 없음. 리소스가 아직 연결되지 않았거나, drbdadm disconnect와 같이 연결이 끊어짐, 인증실패, 스플릿 브레인으로 인해 연결이 끊어진 상태
+    Disconnecting : 연결 해제 중 임시 상태, 연결이 해제된 이후에는 standalone로 변경됨
+    Unconnected : 연결 시도 전의 임시 상태, 이후에는 connecting로 변경됨
+    Timeout : 피어와 통신에 시간 초과 이후의 임시 상태, 이후에는 Disconnecing로 변경됨
+    BrokenPipe : 피어와의 연결이 끊어진 후의 임시 상태, 이후에는 Disconnecing로 변경됨
+    NetworkFailure : 다른 호스트와 연결이 끊어진 후의 임시 상태, 이후에는 Disconnecing로 변경됨
+    ProtocolError : 다른 호스트와 연결이 끊어진 후 임시 상태, 이후에는 Disconnecing로 변경됨
+    TearDown : 임시 상태이며 피어가 연결을 닫고 있음, 이후에는 Disconnecing로 변경됨
+    Connecting : 피어 노드가 네트워크에 표시 될 때까지 대기
+    Connected : DRBD 연결이 설정되었으며, 데이터 미러링이 활성화 됨 (정상 상태)
+    
+  - 복제 상태 목록
+    Off : 연결이 connected가 아니기 때문에 이 연결을 통해 볼륨이 복제되지 않음
+    Established : 해당 볼륨에 대한 모든 쓰기는 온라인으로 복제 되고 있음 (정상 상태)
+    StartingSyncS : 관리자가 시작한 전체 동기화가 이제 막 시작 되었으며, 이후 가능한 상태는 SyncSource 또는 PausedSyncS
+    StartingSyncT : 관리자가 시작한 전체 동기화가 이제 막 시작 되었으며, 이후 가능한 상태는 WFSyncUUID
+    WFBitMapS : 부분 동기화가 시작 되었으며, 이후 가능 상태는 SyncSource 또는 PausedSyncs
+    WFBitMapT : 부분 동기화가 시작 되었으며, 이후 가능 상태는 WFSyncUUID
+    WFSyncUUID : 동기화가 시작 됨, 이후 가능 상태는 SyncTarget 또는 PausedSyncT
+    SyncSource : 동기화가 현재 실행 중이며, 로컬 노드가 동기화 소스 임
+    SyncTarget : 동기화가 현재 실행 중이며, 로컬 노드가 동기화 대상 임
+    PausedSyncS : 로컬 노드는 진행중인 동기화의 소스 이지만 동기화는 현재 일시정지 상태, 이는 다른 동기화 프로세스 완료에 대한 종속성 때문이거나 동기화를 수동으로 중단 했기 때문에 발생
+                  # drbdadm pause-sync
+    PausedSyncT : 로컬 노드는 진행중인 동기화의 대상 이지만 동기화는 현재 일시정지 상태, 이는 다른 동기화 프로세스 완료에 대한 종속성 때문이거나 동기화를 수동으로 중단 했기 때문에 발생
+                  # drbdadm pause-sync
+    VerifyS : 온라인 장치 검증이 현재 실행 중이며, 로컬 노드가 검증 소스
+    VerifyT : 온라인 장치 확인이 현재 실행 중이며, 로컬 노드가 확인 대상
+    Ahead : 링크가 부하에 대처할 수 없기 때문에 데이터 복제가 중단 됨, 해당 상태는 피어 노드의 구성 옵션 on-congestion에 의해 활성화 됨
+    Behind : 링크가 부하에 대처할 수 없기 때문에 피어에 의해 데이터 복제가 중단 됨, 해당 상태는 피어 노드의 구성 옵션 on-congestion에 의해 활성화 됨
+    
+  - 자원 역할 목록
+    Primary : 자원은 현재 기본 역할에 있으며, 읽고 쓸 수 있음 (해당 역할은 A/A를 사용하지 않는 경우 두 노드 중 하나에서만 발생)
+    Secondary : 자원은 현재 보조 역할에 있으며, 일반적으로 피어로부터 업데이트를 수신하며 읽거나 쓸 수는 없음 (하나 또는 두 노드에서 모드 발생할 수 있음)
+    Unknown : 현재 자원의 역할을 알 수 없음, 로컬 자원 역할에서는 이 상태가 없으며 피어의 리소스 역할에 대해서만 표시되며 연결이 끊긴 모드에서만 표시 됨
+    
+  - 디스크 상태 목록
+    Diskless : DRBD 드라이버에 할당 된 로컬 블록 장치가 없음, 이는 리소스가 백업 장치에 연결되지 않았거나 # drbdadm detach를 사용하여 수동으로 분리, 
+               하위 수준 I/O 오류 후 자동으로 분리 되었음을 의미
+    Attaching : 메타 데이터를 읽는 동안 일시적인 상태
+    Detaching : 분리하고 진행 중인 I/O가 완료되기를 기다리는 동안 일시적인 상태
+    Failed : 로컬 블록 장치에 의한 I/O 오류 보고 후 일시적인 상태, 이후 상태는 Diskless
+    Negotiating : 이미 연결된 DRBD 장치에서 연결이 수행 될 때 일시적인 상태
+    Inconsistent : 데이터가 일치하지 않음, 이 상태는 두 노드에서 새 리소스를 생성하는 즉시 발생 (초기 전체 동기화 전)
+                   또한 해당 상태는 동기화 중에 한 노드 (동기화 대상)에서 확인
+    Outdated : 리소스 데이터는 일관성이 있지만 오래된 데이터
+    DUnknown : 해당 상태는 네트워크 연결을 사용할 수 없는 경우 피어 디스크에서 확인됨
+    Consistent : 연결이 없는 노드의 일관된 데이터, 연결이 설정되면 데이터가 UpToDate 인지 Outdated 인지 결정 됨
+    UpToDate : 데이터의 일관된 최신 상태 (정상 상태)
+    
+  - 연결 정보 데이터
+    local : 피어의 연결을 수락하는데 사용되는 네트워크 제품군, 로컬 주소 및 포트를 표시
+    peer : 연결에 사용되는 네트워크 제품군, 피어 주소 및 포트를 표시
+    congested : 데이터 연결의 TCP 송신 버퍼가 80% 이상 채워졌는지 여부를 알려줌
+    
+  - 성능 확인 목록
+    send (network send) : 네트워크 연결을 통해 다른 노드에 전송된 네트워크 데이터의 양 (KiB단위)
+    receive (network receive) : 네트워크 연결을 통해 다른 노드가 수신한 네트워크 데티어의 양 (KiB단위)
+    read (disk write) : 로컬 하드 디스크에 기록된 네트워크 데이터 양 (KiB단위)
+    written (disk read) : 로컥 하드 디스크에서 읽은 네트워크 데이터 양 (KiB단위)
+    al-writes (activity log) : 메타 제이터의 활동 로그 영역 업데이트 수
+    bm-writes (bit map) : 메타 데이터의 비트 맵 영역 업데이트 수
+    lower-pending (local count) : DRBD에서 발행한 로컬 I/O 하위 시스템에 대한 열기 요청 수
+    pending : 다른 노드에 전송 되었지만 아직 다른 노드가 응답하지 않은 요청 수
+    unacked (unacknowledged) : 네트워크 연결을 통해 다른 노드가 수신했지만 아직 응답하지 않은 요청 수
+    upper-pending (application pending) : DRBD로 전달 되었지만 아직 DRBD에서 응답하지 않은 블록 I/O 요청 수
+    write-ordering (write order) : 현재 사용되는 쓰기 순서 방식 - b(barrier), f(flush), d(drain), n(none)
+    out-of-sync : 현재 동기화 되지 않은 저장 용량 (KiB단위)
+    resync-suspended : 재 동기화가 현재 일시 정지 되었는지 여부 (가능한 값은 no, user, peer, dependency)
+    blocked : 로컬 I/O의 혼잡 상태를 표시
+      no: 혼잡이 없음
+      upper: DRBD 장치 위의 I/O가 차단 됨 (파일 시스템)
+             관리자에 의한 I/O 일시 정지 (# drbdadm suspend-io 명령을 참조)
+             과도한 블록 및 attach / detach 중인 경우
+             버퍼가 고갈
+             비트맵 I/O를 기다리는 중
+      lower: 배킹 장치가 혼잡
