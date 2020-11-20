@@ -9,3 +9,8 @@
 
 [Primary]
 4. drbdadm connect drbd_res01
+
+
+
+참조
+https://mantech.jira.com/wiki/spaces/WDRBDV9/pages/170098879/3.
