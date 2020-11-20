@@ -1,0 +1,11 @@
+[Secondary]
+1. drbdadm disconnect drbd_res01
+
+[Primary]
+2. drbdadm disconnect drbd_res01
+
+[Secondary]
+3. drbdadm -- --discard-my-data connect drbd_res01
+
+[Primary]
+4. drbdadm connect drbd_res01
