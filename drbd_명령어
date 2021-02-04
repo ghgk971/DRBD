@@ -3,7 +3,7 @@
   - # drdadm up [resource_name]
   
 2. 리소스 비활성화
-  - # rbdadm down [resource_name]
+  - # drbdadm down [resource_name]
   
 3. 리소스 재구성
   - # vi /etc/drbd.conf 
