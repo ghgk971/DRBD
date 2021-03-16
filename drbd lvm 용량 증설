@@ -1,0 +1,135 @@
+1. 문의 내용
+  - 온라인상 drbd sync device 용량 증설 가능 여부
+  
+2. 확인 내용
+  - disk 용량 증설이 온라인 중에 가능하시다면 해당 disk의 용량 증설 이후 아래와 같이 진행 하시기 바랍니다.  
+  - 파티션 생성이 아닌경우 해당 디스크에 대한 용량을 pv에 재정의 해야 하므로 아래 명령어와 차이가 있습니다. 혼란을 드릴 수 있으므로 파티션이 없는 경우 추가적으로 문의 부탁 드립니다.
+  - 온라인 디스크 증설이 불가능하신 경우 재부팅이 필요 합니다.
+  - 아래는 예제이므로 확인되는 disk 이름으로 변경하여 진행 하시기 바랍니다.
+  
+  2.1 증설 디스크 확인 (증설된 디스크가 어떠한 이름을 가지고 있는지와 파티션이 생성되어 있는지 확인 합니다.) (A/S 모두 진행)
+    - # fdisk -l
+Disk /dev/sdb: 85.9 GB, 85899345920 bytes, 167772160 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk label type: dos
+Disk identifier: 0x9f31869a
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sdb1            2048   104857599    52427776   8e  Linux LVM
+/dev/sdb2       104857600   146800639    20971520   83  Linux
+
+	- # lsblk
+sdb                      8:16   0   80G  0 disk
+├─sdb1                   8:17   0   50G  0 part
+│ ├─vg_data-lv_archive 253:2    0   10G  0 lvm
+│ │ └─drbd0            147:0    0   10G  0 disk /archive
+│ ├─vg_data-lv_wal     253:3    0   10G  0 lvm
+│ │ └─drbd2            147:2    0   10G  0 disk /pg_wal
+│ ├─vg_data-lv_TS01    253:4    0   10G  0 lvm
+│ │ └─drbd3            147:3    0   10G  0 disk /TS01
+│ └─vg_data-lv_data    253:5    0   40G  0 lvm
+│   └─drbd1            147:1    0   40G  0 disk /data
+└─sdb2                   8:18   0   20G  0 part
+  └─vg_data-lv_data    253:5    0   40G  0 lvm
+    └─drbd1            147:1    0   40G  0 disk /data
+
+
+  2.2 파티션 생성 (디바이스 이름만 지정하며, 파티션 번호는 넣지 않습니다.) (A/S 모두 진행)
+    - # fdisk /dev/sdb 
+	- Command (m for help): p (기존 생성되어있는 파티션 정보가 있는지 확인 합니다.)
+Disk /dev/sdb: 85.9 GB, 85899345920 bytes, 167772160 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk label type: dos
+Disk identifier: 0x9f31869a
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sdb1            2048   104857599    52427776   8e  Linux LVM
+/dev/sdb2       104857600   146800639    20971520   83  Linux
+
+	- Command (m for help): n (새로운 파티션을 생성 합니다.)
+Partition type:
+  p   primary (2 primary, 0 extended, 2 free)
+  e   extended
+
+	- Select (default p): p (primary 파티션을 생성 합니다.)
+	- Partition number (3,4, default 3): (엔터 입력 시 기본값으로 새로운 파티션에 대한 다음 숫자가 입력 됩니다.)
+	- First sector (146800640-167772159, default 146800640): (엔터 입력 시 기본값으로 증설 가능한 첫번째 섹터로 지정 됩니다.)
+	- Last sector, +sectors or +size{K,M,G} (146800640-167772159, default 167772159): (엔터 입력 시 기본값으로 증설 가능한 마지막 섹터로 지정 됩니다.)
+	- Command (m for help): p
+
+Disk /dev/sdb: 85.9 GB, 85899345920 bytes, 167772160 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk label type: dos
+Disk identifier: 0x9f31869a
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sdb1            2048   104857599    52427776   8e  Linux LVM
+/dev/sdb2       104857600   146800639    20971520   83  Linux
+/dev/sdb3       146800640   167772159    10485760   83  Linux
+
+    - Command (m for help): wq
+
+    - # partprobe
+	
+  2.3 lv 용량 증설 (A/S 모두 진행)
+    - # lvs (기존 용량 확인)
+  LV         VG      Attr       LSize   Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert
+  root       rhel    -wi-ao---- <15.00g
+  swap       rhel    -wi-ao----   4.00g
+  lv_TS01    vg_data -wi-ao----  10.00g
+  lv_archive vg_data -wi-ao----  10.00g
+  lv_data    vg_data -wi-ao----  39.99g
+  lv_wal     vg_data -wi-ao----  10.00g
+
+    - # pvcreate /dev/sdb3 (새로 생성한 파티션을 지정 합니다.)
+	- # vgextend vg_data /dev/sdb3
+  Physical volume "/dev/sdb3" successfully created.
+  Volume group "vg_data" successfully extended
+    - # lvextend -l +100%FREE /dev/mapper/vg_data-lv_archive
+  Size of logical volume vg_data/lv_archive changed from 10.00 GiB (2560 extents) to <20.00 GiB (5119 extents).
+  Logical volume vg_data/lv_archive successfully resized.
+    - # lvs
+LV         VG      Attr       LSize   Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert
+-- 생략 --
+lv_archive vg_data -wi-ao---- <20.00g
+
+
+    - # lsblk
+-- 생략 --
+sdb                      8:16   0   80G  0 disk
+├─sdb1                   8:17   0   50G  0 part
+│ ├─vg_data-lv_archive 253:2    0   20G  0 lvm
+│ │ └─drbd0            147:0    0   10G  0 disk /archive
+
+
+  2.4 drbd resource name 확인 (한개의 resource 일 경우 all로 지정하셔도 무방 합니다.)
+    - # cat /etc/drbd.d/drbd_res01.res
+resource "drbd_res01"
+-- 생략 --
+
+  2.5 drbd 사이즈 조정
+    - # drbdadm resize drbd_res01 (증설된 용량 만큼 동기화를 진행 합니다. --assume-clean 추가 시 비어있는 디스크라고 간주하고 동기화 없이 진행하실 수 있습니다. ex: drbdadm --assume-clean resize drbd_res01) (선택 사항)
+	- # drbdadm status  (동기화 진행 시 아래와 같이 확인 가능 합니다.)
+drbd_res01 role:Primary
+  volume:0 disk:UpToDate
+  volume:1 disk:UpToDate
+  volume:2 disk:UpToDate
+  volume:3 disk:UpToDate
+  node2 role:Secondary
+    volume:0 replication:SyncSource peer-disk:Inconsistent done:67.65
+    volume:1 peer-disk:UpToDate
+    volume:2 peer-disk:UpToDate
+    volume:3 peer-disk:UpToDate
+	- # xfs_growfs /dev/drbd0 (해당 lv와 연결된 drbd 장치를 지정해주시기 바랍니다. 위 내용을 먼저 진행하여야 확장이 가능)
+	
+  2.6 확인
+    - # df -h
+Filesystem             Size  Used Avail Use% Mounted on
+-- 생 략--
+/dev/drbd0              20G  2.9G   18G  15% /archive
