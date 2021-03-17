@@ -1,0 +1,11 @@
+failover 시 resource 가 절체 되지 않고 messages 로그에 아래 내용 기록
+Mar 17 14:53:30 test1 drbd(drbd_res)[5726]: ERROR: drbd_res01: Called /usr/sbin/crm_master -Q -l reboot -v 10000
+Mar 17 14:53:30 test1 drbd(drbd_res)[5726]: ERROR: drbd_res01: Exit code 107
+Mar 17 14:53:30 test1 drbd(drbd_res)[5726]: ERROR: drbd_res01: Command output:
+Mar 17 14:53:30 test1 lrmd[3270]:  notice: drbd_res_monitor_6000:5726:stderr [ Error signing on to the CIB service: Transport endpoint is not connected ]
+
+
+selinux 사용 여부 확인
+  - disabled 조치
+  
+https://www.reddit.com/r/linuxadmin/comments/azy2u3/pacemaker_is_forcing_drbd_services_to_be_secondary/
