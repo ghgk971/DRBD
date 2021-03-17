@@ -1,3 +1,4 @@
+[파티션 사용]
 1. 문의 내용
   - 온라인상 drbd sync device 용량 증설 가능 여부
   
@@ -133,3 +134,144 @@ drbd_res01 role:Primary
 Filesystem             Size  Used Avail Use% Mounted on
 -- 생 략--
 /dev/drbd0              20G  2.9G   18G  15% /archive
+
+
+
+
+
+
+[파티션 미사용]
+1. 문의 내용
+  - 온라인상 drbd sync device 용량 증설 가능 여부
+  
+2. 확인 내용
+  - 메신저로 문의드린 내용과 같이 disk 확장 간 재부팅이 필요한 관계로 service failover가 필요 합니다.
+  - service failover 간 약간의 단절이 발생 합니다.
+  - 아래는 sosreport 기준으로 작성된 내용 입니다.
+  
+  2.1 증설 디스크 확인 (A/S 모두 진행)
+    - # lsblk
+sdb                8:16   0   10G  0 disk
+└─vgdata-lv_data 253:2    0   10G  0 lvm
+  └─drbd0        147:0    0   10G  0 disk
+
+	
+  2.2 stonith-enable 설정 변경
+    - # pcs property set stonith-enabled=false
+    - standby 서버 정지 시 stonith 가 동작하지 않도록 설정을 변경 합니다.
+    - # pcs property --all | grep stonith-enable  (확인)
+    
+  2.3 Standby(sds-rpacpd12) 서버 disk 용량 증설 작업 진행
+    - # poweroff
+	증설 작업 진행
+	
+  2.4 부팅 후 증설 용량 확인 및 cluster 구동
+    - # lsblk
+sdb                8:16   0   30G  0 disk
+└─vgdata-lv_data 253:2    0   10G  0 lvm
+
+    - # pcs cluster start 
+    
+  2.5 failover 진행   (상태 UpToDate 확인)
+    - # drbdadm status
+drbd_res01 role:Secondary
+  disk:UpToDate
+   test1 role:Primary
+    peer-disk:UpToDate
+
+    - # pcs resource move HA-GROUP
+    - # pcs status    (아래와 같이 start가 test2 서버로 되어 있는것을 확인)	
+ Master/Slave Set: DataSync [drbd_res]
+     drbd_res   (ocf::linbit:drbd):     Master test2
+     drbd_res   (ocf::linbit:drbd):     Slave test1
+     Masters: [ sds-rpacpd11 ]
+     Slaves: [ sds-rpacpd12 ]
+ Resource Group: HA-GROUP
+     VIP        (ocf::heartbeat:IPaddr2):       Started test2
+     Filesystem (ocf::heartbeat:Filesystem):    Started test2
+     Database   (ocf::heartbeat:mysql): Started test2
+ mysbd  (stonith:fence_sbd):    Started test2
+     
+     - # pcs resource clear HA-GROUP
+	
+  2.6 Standby 서버(sds-rpacpd11) disk 용량 증설 작업 진행
+    - # poweroff
+	증설 작업 진행
+	
+  2.7 부팅 후 증설 용량 확인 및 cluster 구동
+    - # lsblk
+sdb                8:16   0   30G  0 disk
+└─vgdata-lv_data 253:2    0   10G  0 lvm
+
+    - # pcs cluster start
+
+  2.7 failover 진행 (test1 서버로 전환이 필요하신 경우 진행, test2 서버에서 운영하여도 무방하신 경우 따로 진행하지 않으셔도 됩니다.)
+    - # drbdadm status
+drbd_res01 role:Secondary
+  disk:UpToDate
+  test2 role:Primary
+    peer-disk:UpToDate
+
+    - # pcs resource move HA-GROUP
+    - # pcs status    (아래와 같이 start가 test1 서버로 되어 있는것을 확인)	
+ Master/Slave Set: DataSync [drbd_res]
+     drbd_res   (ocf::linbit:drbd):     Master test1
+     drbd_res   (ocf::linbit:drbd):     Slave test2
+     Masters: [ sds-rpacpd11 ]
+     Slaves: [ sds-rpacpd12 ]
+ Resource Group: HA-GROUP
+     VIP        (ocf::heartbeat:IPaddr2):       Started test1
+     Filesystem (ocf::heartbeat:Filesystem):    Started test1
+     Database   (ocf::heartbeat:mysql): Started test1
+ mysbd  (stonith:fence_sbd):    Started test1
+
+    - # pcs resource clear HA-GROUP
+    
+  2.8 pvresize 및 lv 확장 진행 (A/S 모두 진행)
+    - # pvs
+  PV         VG     Fmt  Attr PSize   PFree
+  /dev/sda2  rhel   lvm2 a--  <19.00g    0
+  /dev/sdb   vgdata lvm2 a--  <10.00g    0
+
+    - # pvresize /dev/sdb
+  Physical volume "/dev/sdb" changed
+  1 physical volume(s) resized or updated / 0 physical volume(s) not resized
+  
+    - # pvs
+  PV         VG     Fmt  Attr PSize   PFree
+  /dev/sda2  rhel   lvm2 a--  <19.00g     0
+  /dev/sdb   vgdata lvm2 a--  <30.00g 20.00g
+  
+    - # vgs
+  VG     #PV #LV #SN Attr   VSize   VFree
+  rhel     1   2   0 wz--n- <19.00g     0
+  vgdata   1   1   0 wz--n- <30.00g 20.00g
+
+    - # lvextend -l +100%FREE /dev/mapper/vgdata-lv_data
+  Size of logical volume vgdata/lv_data changed from <10.00 GiB (2559 extents) to <30.00 GiB (7679 extents).
+  Logical volume vgdata/lv_data successfully resized.
+  
+  2.9 drbd resize 진행 (Active 서버)
+    - # drbdadm --assume-clean resize drbd_res01 (--assume-clean 추가 시 비어있는 디스크라고 간주하고 동기화 없이 진행하실 수 있습니다.)
+    - # drbdadm status  (동기화 진행 시 아래와 같이 확인 가능 합니다.)
+drbd_res01 role:Primary
+  disk:UpToDate
+  test2 role:Secondary
+    peer-disk:UpToDate
+    
+  2.10 확인
+    - # df -h
+Filesystem             Size  Used Avail Use% Mounted on
+-- 생 략--
+/dev/drbd0              30G  610M   30G   2% /data
+
+	
+  2.11 failover 하여 확인
+    - # pcs resource move HA-GROUP
+    - # df -h
+Filesystem             Size  Used Avail Use% Mounted on
+-- 생 략--
+/dev/drbd0              30G  610M   30G   2% /data
+
+    - # pcs resource clear HA-GROUP
+
