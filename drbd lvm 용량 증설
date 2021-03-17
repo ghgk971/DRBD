@@ -21,7 +21,7 @@ Disk identifier: 0x9f31869a
 /dev/sdb1            2048   104857599    52427776   8e  Linux LVM
 /dev/sdb2       104857600   146800639    20971520   83  Linux
 
-	- # lsblk
+    - # lsblk
 sdb                      8:16   0   80G  0 disk
 ├─sdb1                   8:17   0   50G  0 part
 │ ├─vg_data-lv_archive 253:2    0   10G  0 lvm
@@ -204,28 +204,6 @@ sdb                8:16   0   30G  0 disk
 └─vgdata-lv_data 253:2    0   10G  0 lvm
 
     - # pcs cluster start
-
-  2.7 failover 진행 (test1 서버로 전환이 필요하신 경우 진행, test2 서버에서 운영하여도 무방하신 경우 따로 진행하지 않으셔도 됩니다.)
-    - # drbdadm status
-drbd_res01 role:Secondary
-  disk:UpToDate
-  test2 role:Primary
-    peer-disk:UpToDate
-
-    - # pcs resource move HA-GROUP
-    - # pcs status    (아래와 같이 start가 test1 서버로 되어 있는것을 확인)	
- Master/Slave Set: DataSync [drbd_res]
-     drbd_res   (ocf::linbit:drbd):     Master test1
-     drbd_res   (ocf::linbit:drbd):     Slave test2
-     Masters: [ sds-rpacpd11 ]
-     Slaves: [ sds-rpacpd12 ]
- Resource Group: HA-GROUP
-     VIP        (ocf::heartbeat:IPaddr2):       Started test1
-     Filesystem (ocf::heartbeat:Filesystem):    Started test1
-     Database   (ocf::heartbeat:mysql): Started test1
- mysbd  (stonith:fence_sbd):    Started test1
-
-    - # pcs resource clear HA-GROUP
     
   2.8 pvresize 및 lv 확장 진행 (A/S 모두 진행)
     - # pvs
@@ -267,7 +245,27 @@ Filesystem             Size  Used Avail Use% Mounted on
 
 	
   2.11 failover 하여 확인
+  2.7 failover 진행 (test1 서버로 전환이 필요하신 경우 진행, test2 서버에서 운영하여도 무방하신 경우 따로 진행하지 않으셔도 됩니다.)
+    - # drbdadm status
+drbd_res01 role:Secondary
+  disk:UpToDate
+  test2 role:Primary
+    peer-disk:UpToDate
+
     - # pcs resource move HA-GROUP
+    - # pcs status    (아래와 같이 start가 test1 서버로 되어 있는것을 확인)	
+ Master/Slave Set: DataSync [drbd_res]
+     drbd_res   (ocf::linbit:drbd):     Master test1
+     drbd_res   (ocf::linbit:drbd):     Slave test2
+     Masters: [ sds-rpacpd11 ]
+     Slaves: [ sds-rpacpd12 ]
+ Resource Group: HA-GROUP
+     VIP        (ocf::heartbeat:IPaddr2):       Started test1
+     Filesystem (ocf::heartbeat:Filesystem):    Started test1
+     Database   (ocf::heartbeat:mysql): Started test1
+ mysbd  (stonith:fence_sbd):    Started test1
+
+    - # pcs resource clear HA-GROUP
     - # df -h
 Filesystem             Size  Used Avail Use% Mounted on
 -- 생 략--
