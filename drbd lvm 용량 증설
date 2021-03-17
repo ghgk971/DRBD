@@ -275,3 +275,6 @@ Filesystem             Size  Used Avail Use% Mounted on
 
     - # pcs resource clear HA-GROUP
 
+  2.12 stonith enable 설정 변경
+    - # pcs property set stonith-enabled=ture
+    - # pcs property --all | grep stonith-enable  (확인)
