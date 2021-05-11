@@ -1,0 +1,67 @@
+1. OS	
+  - Process D stat 확인 (script 실행)	
+while test 1	
+do	
+  date >> /XXX/gsat.process_case_1.txt	
+  ps -eo pid,ppid,wchan:25,stat,pri,comm | egrep -w -i "D|mysql" >> /XXX/gsat.process_case1.txt	
+  sleep 5	
+done	
+
+  - SAR 및 iostat 저장 	
+    ㄴ # iostat -td 1 -x >>  /XXX/gsat.iostat_case1.txt	
+  
+  - CrashDump	 
+    ㄴ # echo c > /proc/sysrq-trigger 	
+    ㄴ pacemaker maintenance-mode 설정으로 HA 전환 방지하여 dump 수행
+  
+  
+2. Pacemaker / DRBD	모니터링
+  - /var/log/messages, corosync.log
+  
+  
+3. VMWare	
+  - VM/Host 상태 체크
+    ㄴ # esxtop -b -a -d 10 -n infinite > /tmp/gsat.csv	
+	
+  - VM/Host의 CPU/Memory/Network/Storage 상태 로그 확보
+    ㄴ Network Packet Capture	vm port num 확인 Command: net-stats -l
+	
+  - 장애 시점에서 VM/Host I/O(Network/iSCSI) Traffic 분석
+    ㄴ host pNIC 확인 Command: esxcli network nic list	
+	
+  - 실행 Command: pktcap-uw --switchport xxxx --dir 2 -o /tmp/gsat_vnicX.pcap & pktcap-uw --uplink vmnicX --dir 2 -o /tmp/gsat_vmnicX.pcap	
+	
+  - 종료 Command: kill $(lsof |grep pktcap-uw |awk '{print $1}'| sort -u)	
+  
+
+	DRBD Status Monitoring	
+    - One-shot or realtime monitoring via drbdsetup events2	
+      ㄴ drbd role, Input/Output 정보 
+		- # drbdsetup events2 --statistics --now drbd_res01 	
+	
+
+4. WAS
+  - Thread dump 생성
+    ㄴ # jstack -l PID > dump1.txt (2초 간격 5회 수행)
+
+
+1. iostat
+- 기존에 사용하던 방식과 동일
+# iostat -td 1 -x
+ 
+
+2. iotop
+
+- 현재 r/w 발생되고 있는 프로세스만 수집 합니다.
+# yum install iotop
+# iotop -bot >> /tmp/iotop.txt
+ 
+
+3. perf
+- 1,2 에서 수집된 정보를 참고하고 이슈가 발생하는 시간에 사용되는 system call 을 확인하기 위함 합니다. 
+# yum install bzip2 perf kernel-debuginfo-`uname -r`
+# mkdir -p /tmp/perf; cd $_
+# perf record -a -g -- sleep 300
+# perf archive
+
+* sleep 300 일 경우, 5분 동안 perf data 를 수집합니다.
