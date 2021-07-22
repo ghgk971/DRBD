@@ -89,7 +89,7 @@ Disk identifier: 0x9f31869a
   lv_wal     vg_data -wi-ao----  10.00g
 
     - # pvcreate /dev/sdb3 (새로 생성한 파티션을 지정 합니다.)
-	- # vgextend vg_data /dev/sdb3
+    - # vgextend vg_data /dev/sdb3
   Physical volume "/dev/sdb3" successfully created.
   Volume group "vg_data" successfully extended
     - # lvextend -l +100%FREE /dev/mapper/vg_data-lv_archive
@@ -116,7 +116,7 @@ resource "drbd_res01"
 
   2.5 drbd 사이즈 조정
     - # drbdadm resize drbd_res01 (증설된 용량 만큼 동기화를 진행 합니다. --assume-clean 추가 시 비어있는 디스크라고 간주하고 동기화 없이 진행하실 수 있습니다. ex: drbdadm --assume-clean resize drbd_res01) (선택 사항)
-	- # drbdadm status  (동기화 진행 시 아래와 같이 확인 가능 합니다.)
+    - # drbdadm status  (동기화 진행 시 아래와 같이 확인 가능 합니다.)
 drbd_res01 role:Primary
   volume:0 disk:UpToDate
   volume:1 disk:UpToDate
@@ -127,7 +127,8 @@ drbd_res01 role:Primary
     volume:1 peer-disk:UpToDate
     volume:2 peer-disk:UpToDate
     volume:3 peer-disk:UpToDate
-	- # xfs_growfs /dev/drbd0 (해당 lv와 연결된 drbd 장치를 지정해주시기 바랍니다. 위 내용을 먼저 진행하여야 확장이 가능)
+    
+    - # xfs_growfs /dev/drbd0 (해당 lv와 연결된 drbd 장치를 지정해주시기 바랍니다. 위 내용을 먼저 진행하여야 확장이 가능)
 	
   2.6 확인
     - # df -h
@@ -236,6 +237,8 @@ drbd_res01 role:Primary
   disk:UpToDate
   test2 role:Secondary
     peer-disk:UpToDate
+    
+    - # xfs_growfs /dev/drbd0 (해당 lv와 연결된 drbd 장치를 지정해주시기 바랍니다. 위 내용을 먼저 진행하여야 확장이 가능)
     
   2.10 확인
     - # df -h
