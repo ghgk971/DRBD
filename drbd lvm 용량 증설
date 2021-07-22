@@ -245,7 +245,8 @@ Filesystem             Size  Used Avail Use% Mounted on
 
 	
   2.11 failover 하여 확인
-  2.7 failover 진행 (test1 서버로 전환이 필요하신 경우 진행, test2 서버에서 운영하여도 무방하신 경우 따로 진행하지 않으셔도 됩니다.)
+  
+  2.12 failover 진행 (test1 서버로 전환이 필요하신 경우 진행, test2 서버에서 운영하여도 무방하신 경우 따로 진행하지 않으셔도 됩니다.)
     - # drbdadm status
 drbd_res01 role:Secondary
   disk:UpToDate
@@ -273,6 +274,6 @@ Filesystem             Size  Used Avail Use% Mounted on
 
     - # pcs resource clear HA-GROUP
 
-  2.12 stonith enable 설정 변경
+  2.13 stonith enable 설정 변경
     - # pcs property set stonith-enabled=ture
     - # pcs property --all | grep stonith-enable  (확인)
