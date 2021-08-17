@@ -1,4 +1,4 @@
-1. disk 추가 (기존 resource 파일에 디스크 추가) (양쪽 모두)
+1. volume 추가 (기존 resource 파일에 volume 추가) (양쪽 모두)
   - 기존 resource에 추가 후 adjust 실행 시킬 경우에 resource 다운이 발생함
   - # vi /etc/drbd.d/drbd_res01.res 
       volume 0 {
@@ -17,7 +17,9 @@
   - # drbdadm create-md drbd_res01/1 (/1과 같이 volume id 지정)
   - # drbdadm primary drbd_res01 (--force) (active node에서 실행)
 
-2. disk 추가 (새로운 resource 파일 생성하여 디스크 추가) (양쪽 모두)
+
+
+2. volume 추가 (새로운 resource 파일 생성하여 volume 추가) (양쪽 모두)
   - 새로운 resource 파일 생성하여 추가 시 기존 resource는 다운되지 않으나, 이전 리소스와 같은 포트를 사용할 수 없음
   - # vi /etc/drbd.d/drbd_res02.res
       resource "drbd_res02"
